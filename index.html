@@ -23,7 +23,6 @@
         --copy-icon: #ccc;
       }
     }
-
     body {
       margin: 0;
       font-family: 'Pretendard', sans-serif;
@@ -52,9 +51,9 @@
       display: flex;
       flex-direction: column;
       gap: 32px;
+      scroll-behavior: smooth;
       opacity: 0;
       transition: opacity 0.6s ease;
-      scroll-behavior: smooth;
     }
 
     .bubble-wrapper {
@@ -69,8 +68,8 @@
     }
 
     .bubble {
-      max-width: 90%;
-      padding: 12px 16px;
+      max-width: 85%;
+      padding: 10px 14px;
       border-radius: 16px;
       white-space: pre-wrap;
       font-size: 15px;
@@ -78,37 +77,74 @@
       word-break: break-word;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       position: relative;
+    }
+
+    .user .bubble {
+      background: var(--bubble-user);
+      color: var(--text-color);
+    }
+
+    .assistant .bubble {
       background: var(--bubble-assistant);
       color: var(--text-color);
       border: 1px solid var(--bubble-border);
     }
 
-    .user .bubble {
-      background: var(--bubble-user);
+    .assistant .bubble.error {
+      border-color: #f66;
+      background: #ffecec;
+      color: #b00020;
     }
 
     .copy-btn {
       position: absolute;
-      top: 6px;
-      right: -36px;
-      background: none;
+      top: 8px;
+      right: -32px;
+      background: transparent;
       border: none;
       cursor: pointer;
-      padding: 0;
-      color: var(--copy-icon);
     }
 
     .copy-btn svg {
       width: 18px;
       height: 18px;
       fill: var(--copy-icon);
+      transition: fill 0.2s ease;
+    }
+
+    .copy-btn:hover svg {
+      fill: var(--text-color);
     }
 
     .timestamp {
       font-size: 12px;
-      color: var(--copy-icon);
+      color: #888;
       margin-top: 4px;
+      padding-left: 6px;
+    }
+
+    .bubble-wrapper.user .timestamp {
       text-align: right;
+      padding-left: 0;
+      padding-right: 6px;
+    }
+
+    .loading span {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      margin: 0 2px;
+      background-color: #999;
+      border-radius: 50%;
+      animation: blink 1.4s infinite both;
+    }
+
+    .loading span:nth-child(2) { animation-delay: 0.2s; }
+    .loading span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0; }
+      40% { opacity: 1; }
     }
 
     #inputContainer {
@@ -128,7 +164,7 @@
       bottom: 0;
       left: 50%;
       transform: translateX(-50%);
-      padding: 16px 0;
+      padding: 12px 0;
       width: 90%;
       background: var(--bg-color);
       border-top: 1px solid var(--bubble-border);
@@ -136,18 +172,17 @@
 
     #input {
       flex: 1;
-      padding: 12px 14px;
-      border: 1px solid var(--bubble-border);
+      padding: 10px 14px;
+      border: 1px solid #ccc;
       border-radius: 8px;
       font-size: 14px;
       resize: none;
-      height: 48px;
-      min-height: 48px;
+      line-height: 1.5;
+      height: 32px;
+      min-height: 32px;
       max-height: 180px;
       overflow-y: auto;
       transition: height 0.2s ease;
-      background: var(--bg-color);
-      color: var(--text-color);
     }
 
     #sendBtn {
@@ -158,29 +193,30 @@
       padding: 0 14px;
       font-size: 18px;
       cursor: pointer;
+      transition: background 0.2s ease;
     }
 
-    @media (max-width: 768px) {
-      #inputContainer.bottom {
-        width: 95%;
-      }
-    }
+    #sendBtn:hover { background: #000; }
+    #sendBtn:active { background: #444; }
   </style>
 </head>
 <body>
   <div id="logo">Koba</div>
   <div id="chat"></div>
+
   <div id="inputContainer">
     <textarea id="input" placeholder="무엇이든 물어보세요…" oninput="resizeTextarea(this)" onkeydown="handleKey(event)"></textarea>
     <button id="sendBtn" onclick="handleFirstSend()">↑</button>
   </div>
 
   <script>
-    const API_KEY = "sk-본인키";
+    const API_KEY = "sk-여기에_본인_API_KEY";
     const chat = document.getElementById("chat");
     const input = document.getElementById("input");
     const inputContainer = document.getElementById("inputContainer");
-    let isWaiting = false, started = false;
+
+    let isWaiting = false;
+    let started = false;
 
     window.onload = () => {
       setTimeout(() => input.focus(), 100);
@@ -188,8 +224,16 @@
     };
 
     function resizeTextarea(el) {
-      el.style.height = 'auto';
-      el.style.height = el.scrollHeight + 'px';
+      el.style.height = "auto";
+      el.style.height = el.scrollHeight + "px";
+      setTimeout(() => {
+        chat.scrollTop = chat.scrollHeight;
+      }, 0);
+    }
+
+    function getTimeStamp() {
+      const now = new Date();
+      return now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     }
 
     function addMessage(role, text, loading = false, isError = false) {
@@ -198,19 +242,22 @@
 
       const bubble = document.createElement("div");
       bubble.className = "bubble";
+      if (isError) bubble.classList.add("error");
+
       if (loading) {
-        bubble.innerHTML = '<span>...</span>';
+        bubble.classList.add("loading");
+        bubble.innerHTML = '<span></span><span></span><span></span>';
       } else {
         bubble.textContent = text;
 
-        if (role === "assistant") {
+        if (role === "assistant" && !isError) {
           const btn = document.createElement("button");
           btn.className = "copy-btn";
-          btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 18H8V7h11v16z"/></svg>`;
+          btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 21H9a2 2 0 0 1-2-2V7h2v12h10v2ZM15 3H5a2 2 0 0 0-2 2v12h2V5h10V3Zm-4 4h8v8h-8V7Z"/></svg>`;
           btn.onclick = () => {
             navigator.clipboard.writeText(text);
             btn.innerHTML = "✔";
-            setTimeout(() => btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 18H8V7h11v16z"/></svg>`, 1500);
+            setTimeout(() => btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 21H9a2 2 0 0 1-2-2V7h2v12h10v2ZM15 3H5a2 2 0 0 0-2 2v12h2V5h10V3Zm-4 4h8v8h-8V7Z"/></svg>`, 1500);
           };
           bubble.appendChild(btn);
         }
@@ -221,12 +268,13 @@
       if (!loading) {
         const timestamp = document.createElement("div");
         timestamp.className = "timestamp";
-        timestamp.textContent = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+        timestamp.textContent = getTimeStamp();
         wrapper.appendChild(timestamp);
       }
 
       chat.appendChild(wrapper);
       chat.scrollTop = chat.scrollHeight;
+
       if (!loading) saveHistory();
       return bubble;
     }
@@ -252,16 +300,18 @@
             temperature: 0.7
           })
         });
+
         const data = await res.json();
         loadingBubble.parentElement.remove();
-        if (data.choices?.[0]?.message?.content) {
+
+        if (data.choices && data.choices[0].message) {
           addMessage("assistant", data.choices[0].message.content);
         } else {
-          addMessage("assistant", "⚠️ 응답이 없습니다. 다시 시도해주세요.");
+          addMessage("assistant", "⚠️ 응답이 없습니다. 다시 시도해주세요.", false, true);
         }
       } catch (err) {
         loadingBubble.parentElement.remove();
-        addMessage("assistant", "⚠️ 에러: " + err.message);
+        addMessage("assistant", "⚠️ 에러 발생: " + err.message, false, true);
       }
 
       isWaiting = false;
@@ -270,6 +320,7 @@
     function handleFirstSend() {
       const prompt = input.value.trim();
       if (!prompt) return;
+
       if (!started) {
         started = true;
         inputContainer.classList.add("bottom");
@@ -277,20 +328,22 @@
           chat.style.opacity = 1;
         }, 50);
       }
+
       sendMessage(prompt);
     }
 
     function handleKey(e) {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        handleFirstSend();
+        setTimeout(handleFirstSend, 0);
       }
     }
 
     function saveHistory() {
-      const logs = Array.from(document.querySelectorAll(".bubble-wrapper")).map(w => {
+      const wrappers = chat.querySelectorAll(".bubble-wrapper");
+      const logs = Array.from(wrappers).map(w => {
         const role = w.classList.contains("user") ? "user" : "assistant";
-        const text = w.querySelector(".bubble").textContent.trim();
+        const text = w.querySelector(".bubble").textContent.replace(/✔/, '').trim();
         return { role, text };
       });
       localStorage.setItem("koba_chat_history", JSON.stringify(logs));
@@ -300,7 +353,9 @@
       const data = localStorage.getItem("koba_chat_history");
       if (!data) return;
       const logs = JSON.parse(data);
-      logs.forEach(log => addMessage(log.role, log.text));
+      logs.forEach(log => {
+        addMessage(log.role, log.text);
+      });
       inputContainer.classList.add("bottom");
       chat.style.opacity = 1;
     }
