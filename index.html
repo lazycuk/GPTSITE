@@ -5,15 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Koba GPT</title>
   <style>
+    :root {
+      --bg-color: #f8f9fa;
+      --text-color: #111;
+      --bubble-user: #d2edff;
+      --bubble-assistant: #fff;
+      --bubble-border: #eee;
+      --copy-icon: #999;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #1e1e1e;
+        --text-color: #f1f1f1;
+        --bubble-user: #2a5b78;
+        --bubble-assistant: #2b2b2b;
+        --bubble-border: #444;
+        --copy-icon: #ccc;
+      }
+    }
+
     body {
       margin: 0;
       font-family: 'Pretendard', sans-serif;
-      background: #f8f9fa;
+      background: var(--bg-color);
+      color: var(--text-color);
       height: 100vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      color: #111;
     }
 
     #logo {
@@ -22,6 +41,7 @@
       left: 24px;
       font-weight: 600;
       font-size: 20px;
+      color: var(--text-color);
       z-index: 10;
     }
 
@@ -31,7 +51,7 @@
       padding: 80px max(5%, 20px) 120px;
       display: flex;
       flex-direction: column;
-      gap: 36px;
+      gap: 32px;
       opacity: 0;
       transition: opacity 0.6s ease;
       scroll-behavior: smooth;
@@ -49,7 +69,7 @@
     }
 
     .bubble {
-      max-width: 80%;
+      max-width: 90%;
       padding: 12px 16px;
       border-radius: 16px;
       white-space: pre-wrap;
@@ -58,71 +78,37 @@
       word-break: break-word;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       position: relative;
+      background: var(--bubble-assistant);
+      color: var(--text-color);
+      border: 1px solid var(--bubble-border);
     }
 
     .user .bubble {
-      background: #d2edff;
-    }
-
-    .assistant .bubble {
-      background: #fff;
-      border: 1px solid #eee;
-    }
-
-    .assistant .bubble.error {
-      border-color: #f66;
-      background: #ffecec;
-      color: #b00020;
-    }
-
-    .timestamp {
-      font-size: 11px;
-      color: #999;
-      margin-top: 4px;
-      text-align: right;
-    }
-
-    .bubble-wrapper.user .timestamp {
-      text-align: left;
-      align-self: flex-start;
+      background: var(--bubble-user);
     }
 
     .copy-btn {
+      position: absolute;
+      top: 6px;
+      right: -36px;
       background: none;
       border: none;
-      position: absolute;
-      top: 8px;
-      right: -28px;
       cursor: pointer;
       padding: 0;
+      color: var(--copy-icon);
     }
 
     .copy-btn svg {
-      width: 16px;
-      height: 16px;
-      fill: #999;
+      width: 18px;
+      height: 18px;
+      fill: var(--copy-icon);
     }
 
-    .copy-btn:hover svg {
-      fill: #333;
-    }
-
-    .loading span {
-      display: inline-block;
-      width: 6px;
-      height: 6px;
-      margin: 0 2px;
-      background-color: #999;
-      border-radius: 50%;
-      animation: blink 1.4s infinite both;
-    }
-
-    .loading span:nth-child(2) { animation-delay: 0.2s; }
-    .loading span:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes blink {
-      0%, 80%, 100% { opacity: 0; }
-      40% { opacity: 1; }
+    .timestamp {
+      font-size: 12px;
+      color: var(--copy-icon);
+      margin-top: 4px;
+      text-align: right;
     }
 
     #inputContainer {
@@ -144,23 +130,24 @@
       transform: translateX(-50%);
       padding: 16px 0;
       width: 90%;
-      background: white;
-      border-top: 1px solid #ddd;
+      background: var(--bg-color);
+      border-top: 1px solid var(--bubble-border);
     }
 
     #input {
       flex: 1;
       padding: 12px 14px;
-      border: 1px solid #ccc;
+      border: 1px solid var(--bubble-border);
       border-radius: 8px;
       font-size: 14px;
       resize: none;
-      line-height: 1.5;
       height: 48px;
       min-height: 48px;
       max-height: 180px;
       overflow-y: auto;
       transition: height 0.2s ease;
+      background: var(--bg-color);
+      color: var(--text-color);
     }
 
     #sendBtn {
@@ -173,67 +160,9 @@
       cursor: pointer;
     }
 
-    #sendBtn:hover { background: #000; }
-    #sendBtn:active { background: #444; }
-
     @media (max-width: 768px) {
       #inputContainer.bottom {
         width: 95%;
-        padding: 12px 0;
-      }
-    }
-
-    /* 다크모드 */
-    @media (prefers-color-scheme: dark) {
-      body {
-        background: #121212;
-        color: #eee;
-      }
-
-      #logo {
-        color: #eee;
-      }
-
-      .user .bubble {
-        background: #2c3e50;
-        color: #fff;
-      }
-
-      .assistant .bubble {
-        background: #1e1e1e;
-        color: #eee;
-        border: 1px solid #333;
-      }
-
-      .timestamp {
-        color: #aaa;
-      }
-
-      #inputContainer.bottom {
-        background: #1e1e1e;
-        border-top: 1px solid #333;
-      }
-
-      #input {
-        background: #2c2c2c;
-        border: 1px solid #555;
-        color: #eee;
-      }
-
-      #sendBtn {
-        background: #444;
-      }
-
-      #sendBtn:hover {
-        background: #666;
-      }
-
-      .copy-btn svg {
-        fill: #aaa;
-      }
-
-      .copy-btn:hover svg {
-        fill: #fff;
       }
     }
   </style>
@@ -241,7 +170,6 @@
 <body>
   <div id="logo">Koba</div>
   <div id="chat"></div>
-
   <div id="inputContainer">
     <textarea id="input" placeholder="무엇이든 물어보세요…" oninput="resizeTextarea(this)" onkeydown="handleKey(event)"></textarea>
     <button id="sendBtn" onclick="handleFirstSend()">↑</button>
@@ -252,9 +180,7 @@
     const chat = document.getElementById("chat");
     const input = document.getElementById("input");
     const inputContainer = document.getElementById("inputContainer");
-
-    let isWaiting = false;
-    let started = false;
+    let isWaiting = false, started = false;
 
     window.onload = () => {
       setTimeout(() => input.focus(), 100);
@@ -263,12 +189,7 @@
 
     function resizeTextarea(el) {
       el.style.height = 'auto';
-      el.style.height = (el.scrollHeight) + 'px';
-    }
-
-    function formatTime() {
-      const now = new Date();
-      return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      el.style.height = el.scrollHeight + 'px';
     }
 
     function addMessage(role, text, loading = false, isError = false) {
@@ -277,30 +198,21 @@
 
       const bubble = document.createElement("div");
       bubble.className = "bubble";
-      if (isError) bubble.classList.add("error");
-
       if (loading) {
-        bubble.classList.add("loading");
-        bubble.innerHTML = '<span></span><span></span><span></span>';
+        bubble.innerHTML = '<span>...</span>';
       } else {
         bubble.textContent = text;
 
-        if (role === "assistant" && !isError) {
-          const copyBtn = document.createElement("button");
-          copyBtn.className = "copy-btn";
-          copyBtn.innerHTML = `
-            <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v16h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 18H8V7h11v16z"/></svg>
-          `;
-          copyBtn.onclick = () => {
+        if (role === "assistant") {
+          const btn = document.createElement("button");
+          btn.className = "copy-btn";
+          btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 18H8V7h11v16z"/></svg>`;
+          btn.onclick = () => {
             navigator.clipboard.writeText(text);
-            copyBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17l-3.88-3.88L4 13.41l5 5 10-10-1.41-1.42z"/></svg>';
-            setTimeout(() => {
-              copyBtn.innerHTML = `
-                <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v16h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 18H8V7h11v16z"/></svg>
-              `;
-            }, 2000);
+            btn.innerHTML = "✔";
+            setTimeout(() => btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 18H8V7h11v16z"/></svg>`, 1500);
           };
-          wrapper.appendChild(copyBtn);
+          bubble.appendChild(btn);
         }
       }
 
@@ -309,13 +221,12 @@
       if (!loading) {
         const timestamp = document.createElement("div");
         timestamp.className = "timestamp";
-        timestamp.textContent = formatTime();
+        timestamp.textContent = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
         wrapper.appendChild(timestamp);
       }
 
       chat.appendChild(wrapper);
       chat.scrollTop = chat.scrollHeight;
-
       if (!loading) saveHistory();
       return bubble;
     }
@@ -341,18 +252,16 @@
             temperature: 0.7
           })
         });
-
         const data = await res.json();
         loadingBubble.parentElement.remove();
-
-        if (data.choices && data.choices[0].message) {
+        if (data.choices?.[0]?.message?.content) {
           addMessage("assistant", data.choices[0].message.content);
         } else {
-          addMessage("assistant", "⚠️ 응답이 없습니다. 다시 시도해주세요.", false, true);
+          addMessage("assistant", "⚠️ 응답이 없습니다. 다시 시도해주세요.");
         }
       } catch (err) {
         loadingBubble.parentElement.remove();
-        addMessage("assistant", "⚠️ 에러 발생: " + err.message, false, true);
+        addMessage("assistant", "⚠️ 에러: " + err.message);
       }
 
       isWaiting = false;
@@ -361,7 +270,6 @@
     function handleFirstSend() {
       const prompt = input.value.trim();
       if (!prompt) return;
-
       if (!started) {
         started = true;
         inputContainer.classList.add("bottom");
@@ -369,26 +277,22 @@
           chat.style.opacity = 1;
         }, 50);
       }
-
       sendMessage(prompt);
     }
 
     function handleKey(e) {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        setTimeout(handleFirstSend, 0);
+        handleFirstSend();
       }
     }
 
     function saveHistory() {
-      const wrappers = chat.querySelectorAll(".bubble-wrapper");
-      const logs = Array.from(wrappers)
-        .filter(w => w.querySelector(".bubble"))
-        .map(w => {
-          const role = w.classList.contains("user") ? "user" : "assistant";
-          const text = w.querySelector(".bubble").textContent.trim();
-          return { role, text };
-        });
+      const logs = Array.from(document.querySelectorAll(".bubble-wrapper")).map(w => {
+        const role = w.classList.contains("user") ? "user" : "assistant";
+        const text = w.querySelector(".bubble").textContent.trim();
+        return { role, text };
+      });
       localStorage.setItem("koba_chat_history", JSON.stringify(logs));
     }
 
@@ -396,9 +300,7 @@
       const data = localStorage.getItem("koba_chat_history");
       if (!data) return;
       const logs = JSON.parse(data);
-      logs.forEach(log => {
-        addMessage(log.role, log.text);
-      });
+      logs.forEach(log => addMessage(log.role, log.text));
       inputContainer.classList.add("bottom");
       chat.style.opacity = 1;
     }
