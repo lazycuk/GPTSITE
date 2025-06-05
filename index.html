@@ -1,0 +1,117 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Koba GPT</title>
+  <style>
+    body {
+      margin: 0; font-family: Pretendard, sans-serif; background: #f8f9fa;
+      display: flex; flex-direction: column; height: 100vh;
+    }
+    #chat {
+      flex: 1; padding: 40px 20%; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    #input-area {
+      display: flex; gap: 8px; padding: 20px 20%;
+      border-top: 1px solid #ddd; background: white;
+    }
+    textarea {
+      flex: 1; resize: none; height: 56px;
+      padding: 14px 16px; border: 1px solid #ccc;
+      border-radius: 10px; font-size: 15px; line-height: 1.5;
+    }
+    button {
+      padding: 0 18px; background: #222; color: white;
+      border: none; border-radius: 10px; font-size: 15px; cursor: pointer;
+    }
+    .bubble {
+      max-width: 70%; padding: 14px 18px; border-radius: 16px;
+      white-space: pre-wrap; font-size: 15px; line-height: 1.7;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .user { align-self: flex-end; background: #d2edff; }
+    .bot { align-self: flex-start; background: #fff; border: 1px solid #eee; }
+    .dot {
+      display: inline-block; width: 6px; height: 6px; margin: 0 2px;
+      background-color: #999; border-radius: 50%;
+      animation: blink 1.4s infinite both;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0; }
+      40% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="chat"></div>
+  <div id="input-area">
+    <textarea id="input" placeholder="무엇이든 물어보세요…"></textarea>
+    <button onclick="sendMessage()">전송</button>
+  </div>
+  <script>
+    const API_KEY = import.meta.env.VITE_OPENAI_API_KEY; // 여기에 본인의 GPT API 키 입력
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('input');
+    let isWaiting = false;
+
+    function addMessage(role, text, loading = false) {
+      const div = document.createElement('div');
+      div.className = 'bubble ' + role;
+      if (loading) {
+        div.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+      } else {
+        div.textContent = text;
+      }
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+      return div;
+    }
+
+    async function sendMessage() {
+      const prompt = input.value.trim();
+      if (!prompt || isWaiting) return;
+      addMessage('user', prompt);
+      input.value = '';
+      const loading = addMessage('bot', '', true);
+      isWaiting = true;
+
+      try {
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${API_KEY}`
+          },
+          body: JSON.stringify({
+            model: "gpt-4o",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.7
+          })
+        });
+        const data = await res.json();
+        loading.remove();
+        if (data.choices && data.choices[0]) {
+          addMessage('bot', data.choices[0].message.content);
+        } else {
+          addMessage('bot', '⚠️ 응답이 없습니다.');
+        }
+      } catch (e) {
+        loading.remove();
+        addMessage('bot', '⚠️ 에러 발생: ' + e.message);
+      }
+      isWaiting = false;
+    }
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault(); sendMessage();
+      }
+    });
+  </script>
+</body>
+</html>
