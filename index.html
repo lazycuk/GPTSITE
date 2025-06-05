@@ -94,7 +94,7 @@
   </div>
 
   <script>
-    const API_KEY = "<API_KEY_HERE>"; // ← 여기에 본인의 OpenAI API 키 입력
+    const API_KEY = "import.meta.env.VITE_OPENAI_API_KEY;"; // ← 여기에 본인의 OpenAI API 키 입력
     const chat = document.getElementById("chat");
     const input = document.getElementById("input");
 
