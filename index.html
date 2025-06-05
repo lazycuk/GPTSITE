@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Koba GPT</title>
   <style>
+    :root {
+      color-scheme: light dark;
+    }
+
     body {
       margin: 0;
       font-family: 'Pretendard', sans-serif;
@@ -31,7 +35,7 @@
       padding: 80px max(5%, 20px) 120px;
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 32px;
       opacity: 0;
       transition: opacity 0.6s ease;
       scroll-behavior: smooth;
@@ -49,8 +53,8 @@
     }
 
     .bubble {
-      max-width: 85%;
-      padding: 10px 14px;
+      max-width: 90%;
+      padding: 12px 14px;
       border-radius: 16px;
       white-space: pre-wrap;
       font-size: 15px;
@@ -62,10 +66,12 @@
 
     .user .bubble {
       background: #d2edff;
+      color: #111;
     }
 
     .assistant .bubble {
       background: #fff;
+      color: #111;
       border: 1px solid #eee;
     }
 
@@ -76,22 +82,23 @@
     }
 
     .copy-btn {
-      background: transparent;
+      position: absolute;
+      top: 8px;
+      right: -28px;
+      background: none;
       border: none;
       cursor: pointer;
-      font-size: 0;
-      padding: 0;
-      margin-left: 8px;
-    }
-
-    .copy-btn svg {
-      width: 16px;
-      height: 16px;
       fill: #888;
     }
 
-    .copy-btn:hover svg {
-      fill: #222;
+    .copy-btn:hover {
+      fill: #000;
+    }
+
+    .timestamp {
+      font-size: 12px;
+      color: #888;
+      margin-top: 4px;
     }
 
     .loading span {
@@ -112,27 +119,26 @@
       40% { opacity: 1; }
     }
 
-    .bubble-wrapper.assistant {
-      flex-direction: row;
-      align-items: center;
-    }
-
-    .bubble-wrapper.user {
-      flex-direction: column;
-      align-items: flex-end;
-    }
-
     #inputContainer {
       position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      gap: 8px;
+      width: 60%;
+      transition: all 0.5s ease;
+    }
+
+    #inputContainer.bottom {
+      top: auto;
       bottom: 0;
       left: 50%;
       transform: translateX(-50%);
+      padding: 16px 0;
       width: 90%;
       background: white;
       border-top: 1px solid #ddd;
-      padding: 12px 0;
-      display: flex;
-      gap: 8px;
     }
 
     #input {
@@ -148,6 +154,7 @@
       max-height: 180px;
       overflow-y: auto;
       transition: height 0.2s ease;
+      caret-color: #111;
     }
 
     #sendBtn {
@@ -160,13 +167,13 @@
       cursor: pointer;
     }
 
-    @media (max-width: 768px) {
-      #inputContainer {
-        width: 95%;
-      }
+    #sendBtn:hover { background: #000; }
+    #sendBtn:active { background: #444; }
 
-      .bubble {
-        max-width: 90%;
+    @media (max-width: 768px) {
+      #inputContainer.bottom {
+        width: 95%;
+        padding: 12px 0;
       }
     }
   </style>
@@ -174,26 +181,55 @@
 <body>
   <div id="logo">Koba</div>
   <div id="chat"></div>
+
   <div id="inputContainer">
-    <textarea id="input" placeholder="무엇이든 물어보세요…" oninput="resizeTextarea(this)" onkeydown="handleKey(event)"></textarea>
-    <button id="sendBtn" onclick="handleFirstSend()">↑</button>
+    <textarea id="input" placeholder="무엇이든 물어보세요…" rows="1"></textarea>
+    <button id="sendBtn">↑</button>
   </div>
 
   <script>
-    const API_KEY = "sk-여기에_본인_API_KEY";
+    const API_KEY = "sk-본인키입력";
     const chat = document.getElementById("chat");
     const input = document.getElementById("input");
+    const inputContainer = document.getElementById("inputContainer");
+    const sendBtn = document.getElementById("sendBtn");
 
     let isWaiting = false;
+    let started = false;
 
     window.onload = () => {
       setTimeout(() => input.focus(), 100);
       loadHistory();
     };
 
-    function resizeTextarea(el) {
-      el.style.height = 'auto';
-      el.style.height = (el.scrollHeight) + 'px';
+    input.addEventListener("input", () => {
+      input.style.height = "auto";
+      input.style.height = input.scrollHeight + "px";
+      chat.style.paddingBottom = (input.scrollHeight + 40) + "px";
+    });
+
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleFirstSend();
+      }
+    });
+
+    sendBtn.addEventListener("click", handleFirstSend);
+
+    function handleFirstSend() {
+      const prompt = input.value.trim();
+      if (!prompt) return;
+
+      if (!started) {
+        started = true;
+        inputContainer.classList.add("bottom");
+        setTimeout(() => {
+          chat.style.opacity = 1;
+        }, 50);
+      }
+
+      sendMessage(prompt);
     }
 
     function addMessage(role, text, loading = false, isError = false) {
@@ -209,28 +245,37 @@
         bubble.innerHTML = '<span></span><span></span><span></span>';
       } else {
         bubble.textContent = text;
+
+        if (role === "assistant" && !isError) {
+          const btn = document.createElement("button");
+          btn.className = "copy-btn";
+          btn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M10 1.5A1.5 1.5 0 0 1 11.5 3v9A1.5 1.5 0 0 1 10 13.5H4A1.5 1.5 0 0 1 2.5 12V3A1.5 1.5 0 0 1 4 1.5h6zm1 1A.5.5 0 0 0 10.5 2H4a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h6.5a.5.5 0 0 0 .5-.5v-9z"/>
+              <path d="M13 4a1 1 0 0 1 1 1v8.5a.5.5 0 0 1-1 0V5a1 1 0 0 1 1-1z"/>
+            </svg>`;
+          btn.onclick = () => {
+            navigator.clipboard.writeText(text);
+            btn.innerHTML = "✔";
+            setTimeout(() => btn.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M10 1.5A1.5 1.5 0 0 1 11.5 3v9A1.5 1.5 0 0 1 10 13.5H4A1.5 1.5 0 0 1 2.5 12V3A1.5 1.5 0 0 1 4 1.5h6zm1 1A.5.5 0 0 0 10.5 2H4a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h6.5a.5.5 0 0 0 .5-.5v-9z"/>
+                <path d="M13 4a1 1 0 0 1 1 1v8.5a.5.5 0 0 1-1 0V5a1 1 0 0 1 1-1z"/>
+              </svg>`, 1500);
+          };
+          bubble.appendChild(btn);
+        }
       }
 
-      wrapper.appendChild(bubble);
+      const timestamp = document.createElement("div");
+      timestamp.className = "timestamp";
+      timestamp.textContent = new Date().toLocaleTimeString();
 
-      if (role === "assistant" && !loading && !isError) {
-        const copyBtn = document.createElement("button");
-        copyBtn.className = "copy-btn";
-        copyBtn.innerHTML = `
-          <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v16h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 18H8V7h11v16z"/></svg>
-        `;
-        copyBtn.onclick = () => {
-          navigator.clipboard.writeText(text);
-          copyBtn.innerHTML = '✔';
-          setTimeout(() => copyBtn.innerHTML = `
-            <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v16h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 18H8V7h11v16z"/></svg>
-          `, 1500);
-        };
-        wrapper.appendChild(copyBtn);
-      }
-
+      wrapper.appendChild(풍선껌);
+      wrapper.appendChild(timestamp);
       chat.appendChild(wrapper);
       chat.scrollTop = chat.scrollHeight;
+
       if (!loading) saveHistory();
       return bubble;
     }
@@ -239,7 +284,8 @@
       if (!prompt || isWaiting) return;
       addMessage("user", prompt);
       input.value = '';
-      resizeTextarea(input);
+      input.style.height = "48px";
+      chat.style.paddingBottom = "120px";
       const loadingBubble = addMessage("assistant", '', true);
       isWaiting = true;
 
@@ -263,27 +309,14 @@
         if (data.choices && data.choices[0].message) {
           addMessage("assistant", data.choices[0].message.content);
         } else {
-          addMessage("assistant", "⚠️ 응답이 없습니다.", false, true);
+          addMessage("assistant", "⚠️ 응답이 없습니다. 다시 시도해주세요.", false, true);
         }
       } catch (err) {
         loadingBubble.parentElement.remove();
-        addMessage("assistant", "⚠️ 에러: " + err.message, false, true);
+        addMessage("assistant", "⚠️ 에러 발생: " + err.message, false, true);
       }
 
       isWaiting = false;
-    }
-
-    function handleFirstSend() {
-      const prompt = input.value.trim();
-      if (!prompt) return;
-      sendMessage(prompt);
-    }
-
-    function handleKey(e) {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        handleFirstSend();
-      }
     }
 
     function saveHistory() {
@@ -303,6 +336,8 @@
       logs.forEach(log => {
         addMessage(log.role, log.text);
       });
+      inputContainer.classList.add("bottom");
+      chat.style.opacity = 1;
     }
   </script>
 </body>
