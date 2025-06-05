@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Koba GPT</title>
   <style>
     body {
@@ -38,7 +38,6 @@
       left: 24px;
       font-weight: 600;
       font-size: 20px;
-      color: inherit;
       z-index: 10;
     }
 
@@ -197,7 +196,7 @@
   </div>
 
   <script>
-    const API_KEY = "sk-직접입력"; // 여기에 키 입력
+    const API_KEY = "sk-직접입력";
     const chat = document.getElementById("chat");
     const input = document.getElementById("input");
     const inputContainer = document.getElementById("inputContainer");
@@ -262,7 +261,9 @@
           btn.onclick = () => {
             navigator.clipboard.writeText(text);
             btn.innerHTML = "✔";
-            setTimeout(() => btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 18H8V7h11v16z"/></svg>`;
+            setTimeout(() => {
+              btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 18H8V7h11v16z"/></svg>`;
+            }, 1500);
           };
           bubble.appendChild(btn);
         }
