@@ -2,33 +2,33 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Koba GPT</title>
   <style>
-    :root {
-      color-scheme: light dark;
-    }
-
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
       font-family: 'Pretendard', sans-serif;
       background: #f8f9fa;
-      color: #111;
       height: 100vh;
-      display: flex;
-      flex-direction: column;
       overflow: hidden;
     }
-
+    body.dark {
+      background: #1e1e1e;
+      color: white;
+    }
     #logo {
       position: fixed;
       top: 20px;
       left: 24px;
       font-weight: 600;
       font-size: 20px;
+      color: #333;
       z-index: 10;
     }
-
+    body.dark #logo {
+      color: white;
+    }
     #chat {
       flex: 1;
       overflow-y: auto;
@@ -40,85 +40,56 @@
       transition: opacity 0.6s ease;
       scroll-behavior: smooth;
     }
-
     .bubble-wrapper {
       display: flex;
       flex-direction: column;
       align-items: flex-start;
       position: relative;
     }
-
     .bubble-wrapper.user {
       align-items: flex-end;
     }
-
     .bubble {
       max-width: 90%;
-      padding: 12px 14px;
+      padding: 10px 14px;
       border-radius: 16px;
       white-space: pre-wrap;
       font-size: 15px;
       line-height: 1.6;
       word-break: break-word;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       position: relative;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-
     .user .bubble {
       background: #d2edff;
       color: #111;
     }
-
     .assistant .bubble {
       background: #fff;
       color: #111;
       border: 1px solid #eee;
     }
-
-    .assistant .bubble.error {
-      border-color: #f66;
-      background: #ffecec;
-      color: #b00020;
+    body.dark .assistant .bubble {
+      background: #2a2a2a;
+      color: #eee;
+      border: 1px solid #444;
     }
-
     .copy-btn {
       position: absolute;
       top: 8px;
-      right: -28px;
-      background: none;
+      right: 8px;
+      background: transparent;
       border: none;
       cursor: pointer;
+    }
+    .copy-btn svg {
+      width: 16px;
+      height: 16px;
       fill: #888;
     }
-
-    .copy-btn:hover {
-      fill: #000;
+    .copy-btn:hover svg {
+      fill: #111;
     }
-
-    .timestamp {
-      font-size: 12px;
-      color: #888;
-      margin-top: 4px;
-    }
-
-    .loading span {
-      display: inline-block;
-      width: 6px;
-      height: 6px;
-      margin: 0 2px;
-      background-color: #999;
-      border-radius: 50%;
-      animation: blink 1.4s infinite both;
-    }
-
-    .loading span:nth-child(2) { animation-delay: 0.2s; }
-    .loading span:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes blink {
-      0%, 80%, 100% { opacity: 0; }
-      40% { opacity: 1; }
-    }
-
     #inputContainer {
       position: absolute;
       top: 50%;
@@ -127,9 +98,8 @@
       display: flex;
       gap: 8px;
       width: 60%;
-      transition: all 0.5s ease;
+      transition: all 0.9s ease;
     }
-
     #inputContainer.bottom {
       top: auto;
       bottom: 0;
@@ -140,7 +110,6 @@
       background: white;
       border-top: 1px solid #ddd;
     }
-
     #input {
       flex: 1;
       padding: 12px 14px;
@@ -154,9 +123,7 @@
       max-height: 180px;
       overflow-y: auto;
       transition: height 0.2s ease;
-      caret-color: #111;
     }
-
     #sendBtn {
       background: #222;
       color: white;
@@ -166,178 +133,136 @@
       font-size: 18px;
       cursor: pointer;
     }
-
-    #sendBtn:hover { background: #000; }
-    #sendBtn:active { background: #444; }
-
-    @media (max-width: 768px) {
-      #inputContainer.bottom {
-        width: 95%;
-        padding: 12px 0;
-      }
+    #sendBtn:hover {
+      background: #000;
+    }
+    #sendBtn:active {
+      background: #444;
+    }
+    .timestamp {
+      font-size: 11px;
+      color: #999;
+      margin-top: 4px;
     }
   </style>
 </head>
 <body>
   <div id="logo">Koba</div>
   <div id="chat"></div>
-
   <div id="inputContainer">
-    <textarea id="input" placeholder="무엇이든 물어보세요…" rows="1"></textarea>
-    <button id="sendBtn">↑</button>
+    <textarea id="input" placeholder="무엇이든 물어보세요…" oninput="resizeTextarea(this)" onkeydown="handleKey(event)"></textarea>
+    <button id="sendBtn" onclick="handleFirstSend()">↑</button>
   </div>
 
   <script>
-    const API_KEY = "sk-본인키입력";
+    const API_KEY = "sk-본인키";
     const chat = document.getElementById("chat");
     const input = document.getElementById("input");
     const inputContainer = document.getElementById("inputContainer");
-    const sendBtn = document.getElementById("sendBtn");
 
     let isWaiting = false;
     let started = false;
 
     window.onload = () => {
       setTimeout(() => input.focus(), 100);
-      loadHistory();
     };
 
-    input.addEventListener("input", () => {
-      input.style.height = "auto";
-      input.style.height = input.scrollHeight + "px";
-      chat.style.paddingBottom = (input.scrollHeight + 40) + "px";
-    });
-
-    input.addEventListener("keydown", e => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        handleFirstSend();
-      }
-    });
-
-    sendBtn.addEventListener("click", handleFirstSend);
-
-    function handleFirstSend() {
-      const prompt = input.value.trim();
-      if (!prompt) return;
-
-      if (!started) {
-        started = true;
-        inputContainer.classList.add("bottom");
-        setTimeout(() => {
-          chat.style.opacity = 1;
-        }, 50);
-      }
-
-      sendMessage(prompt);
+    function resizeTextarea(el) {
+      el.style.height = 'auto';
+      el.style.height = (el.scrollHeight) + 'px';
+      chat.style.paddingBottom = (el.scrollHeight + 80) + 'px';
+      chat.scrollTop = chat.scrollHeight;
     }
 
-    function addMessage(role, text, loading = false, isError = false) {
+    function addMessage(role, text) {
       const wrapper = document.createElement("div");
       wrapper.className = "bubble-wrapper " + role;
 
       const bubble = document.createElement("div");
       bubble.className = "bubble";
-      if (isError) bubble.classList.add("error");
-
-      if (loading) {
-        bubble.classList.add("loading");
-        bubble.innerHTML = '<span></span><span></span><span></span>';
-      } else {
-        bubble.textContent = text;
-
-        if (role === "assistant" && !isError) {
-          const btn = document.createElement("button");
-          btn.className = "copy-btn";
-          btn.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M10 1.5A1.5 1.5 0 0 1 11.5 3v9A1.5 1.5 0 0 1 10 13.5H4A1.5 1.5 0 0 1 2.5 12V3A1.5 1.5 0 0 1 4 1.5h6zm1 1A.5.5 0 0 0 10.5 2H4a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h6.5a.5.5 0 0 0 .5-.5v-9z"/>
-              <path d="M13 4a1 1 0 0 1 1 1v8.5a.5.5 0 0 1-1 0V5a1 1 0 0 1 1-1z"/>
-            </svg>`;
-          btn.onclick = () => {
-            navigator.clipboard.writeText(text);
-            btn.innerHTML = "✔";
-            setTimeout(() => btn.innerHTML = `
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M10 1.5A1.5 1.5 0 0 1 11.5 3v9A1.5 1.5 0 0 1 10 13.5H4A1.5 1.5 0 0 1 2.5 12V3A1.5 1.5 0 0 1 4 1.5h6zm1 1A.5.5 0 0 0 10.5 2H4a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h6.5a.5.5 0 0 0 .5-.5v-9z"/>
-                <path d="M13 4a1 1 0 0 1 1 1v8.5a.5.5 0 0 1-1 0V5a1 1 0 0 1 1-1z"/>
-              </svg>`, 1500);
-          };
-          bubble.appendChild(btn);
-        }
-      }
+      bubble.innerHTML = `
+        <span class="bubble-text">${text}</span>
+        <button class="copy-btn" title="복사">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+            <path d="M10 1.5A1.5 1.5 0 0 1 11.5 3v9A1.5 1.5 0 0 1 10 13.5H4A1.5 1.5 0 0 1 2.5 12V3A1.5 1.5 0 0 1 4 1.5h6z"/>
+            <path d="M13 4a1 1 0 0 1 1 1v8.5a.5.5 0 0 1-1 0V5a1 1 0 0 1 1-1z"/>
+          </svg>
+        </button>
+      `;
 
       const timestamp = document.createElement("div");
       timestamp.className = "timestamp";
-      timestamp.textContent = new Date().toLocaleTimeString();
+      const now = new Date();
+      timestamp.textContent = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
 
       wrapper.appendChild(bubble);
       wrapper.appendChild(timestamp);
       chat.appendChild(wrapper);
       chat.scrollTop = chat.scrollHeight;
 
-      if (!loading) saveHistory();
-      return bubble;
+      bubble.querySelector(".copy-btn").onclick = () => {
+        navigator.clipboard.writeText(text);
+        bubble.querySelector(".copy-btn").innerHTML = "✔";
+        setTimeout(() => {
+          bubble.querySelector(".copy-btn").innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+              <path d="M10 1.5A1.5 1.5 0 0 1 11.5 3v9A1.5 1.5 0 0 1 10 13.5H4A1.5 1.5 0 0 1 2.5 12V3A1.5 1.5 0 0 1 4 1.5h6z"/>
+              <path d="M13 4a1 1 0 0 1 1 1v8.5a.5.5 0 0 1-1 0V5a1 1 0 0 1 1-1z"/>
+            </svg>`;
+        }, 1500);
+      };
     }
 
-    async function sendMessage(prompt) {
+    function sendMessage(prompt) {
       if (!prompt || isWaiting) return;
       addMessage("user", prompt);
       input.value = '';
-      input.style.height = "48px";
-      chat.style.paddingBottom = "120px";
-      const loadingBubble = addMessage("assistant", '', true);
+      resizeTextarea(input);
       isWaiting = true;
 
-      try {
-        const res = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: "gpt-4o",
-            messages: [{ role: "user", content: prompt }],
-            temperature: 0.7
-          })
-        });
-
-        const data = await res.json();
-        loadingBubble.parentElement.remove();
-
+      fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.7
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
         if (data.choices && data.choices[0].message) {
           addMessage("assistant", data.choices[0].message.content);
         } else {
-          addMessage("assistant", "⚠️ 응답이 없습니다. 다시 시도해주세요.", false, true);
+          addMessage("assistant", "⚠️ 응답이 없습니다.");
         }
-      } catch (err) {
-        loadingBubble.parentElement.remove();
-        addMessage("assistant", "⚠️ 에러 발생: " + err.message, false, true);
+        isWaiting = false;
+      })
+      .catch(err => {
+        addMessage("assistant", "⚠️ 에러 발생: " + err.message);
+        isWaiting = false;
+      });
+    }
+
+    function handleFirstSend() {
+      const prompt = input.value.trim();
+      if (!prompt) return;
+      if (!started) {
+        started = true;
+        inputContainer.classList.add("bottom");
+        chat.style.opacity = 1;
       }
-
-      isWaiting = false;
+      sendMessage(prompt);
     }
 
-    function saveHistory() {
-      const wrappers = chat.querySelectorAll(".bubble-wrapper");
-      const logs = Array.from(wrappers).map(w => {
-        const role = w.classList.contains("user") ? "user" : "assistant";
-        const text = w.querySelector(".bubble").textContent.trim();
-        return { role, text };
-      });
-      localStorage.setItem("koba_chat_history", JSON.stringify(logs));
-    }
-
-    function loadHistory() {
-      const data = localStorage.getItem("koba_chat_history");
-      if (!data) return;
-      const logs = JSON.parse(data);
-      logs.forEach(log => {
-        addMessage(log.role, log.text);
-      });
-      inputContainer.classList.add("bottom");
-      chat.style.opacity = 1;
+    function handleKey(e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleFirstSend();
+      }
     }
   </script>
 </body>
